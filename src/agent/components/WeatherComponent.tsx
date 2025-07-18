@@ -1,85 +1,45 @@
 import React, { useState, useEffect } from 'react';
-import { WeatherComponentProps, MockWeatherData } from './types';
+import { WeatherComponentProps } from './types';
 
 /**
- * Mock weather data for different cities
+ * WeatherComponent now receives real weather data from the backend
+ * No need for mock data as all weather information comes from WeatherAPI
  */
-const mockWeatherData: MockWeatherData = {
-  'San Francisco': {
-    temperature: '72°F',
-    condition: 'Partly Cloudy',
-    humidity: '65%',
-    windSpeed: '8 mph',
-    icon: '⛅',
-    gradient: 'linear-gradient(135deg, #74b9ff 0%, #0984e3 100%)',
-    description: 'A beautiful day with some clouds'
-  },
-  'London': {
-    temperature: '59°F', 
-    condition: 'Rainy',
-    humidity: '82%',
-    windSpeed: '12 mph',
-    icon: '🌧️',
-    gradient: 'linear-gradient(135deg, #636e72 0%, #2d3436 100%)',
-    description: 'Light rain throughout the day'
-  },
-  'New York': {
-    temperature: '68°F',
-    condition: 'Sunny',
-    humidity: '58%', 
-    windSpeed: '6 mph',
-    icon: '☀️',
-    gradient: 'linear-gradient(135deg, #fdcb6e 0%, #e17055 100%)',
-    description: 'Clear skies and sunshine'
-  },
-  'Tokyo': {
-    temperature: '75°F',
-    condition: 'Partly Sunny',
-    humidity: '70%',
-    windSpeed: '5 mph', 
-    icon: '🌤️',
-    gradient: 'linear-gradient(135deg, #fd79a8 0%, #fdcb6e 100%)',
-    description: 'Warm with occasional clouds'
-  }
-};
 
 /**
- * Weather component that displays weather information for a given city
- * @param props - Component props containing city name
+ * WeatherComponent displays weather information with beautiful animations
+ * @param props - Component props containing complete weather data
  * @returns JSX element with weather card
  */
-const WeatherComponent: React.FC<WeatherComponentProps> = ({ city }) => {
+const WeatherComponent: React.FC<WeatherComponentProps> = (props) => {
   const [isVisible, setIsVisible] = useState(false);
-  const [weatherData, setWeatherData] = useState(mockWeatherData['San Francisco']);
 
   useEffect(() => {
     // Trigger animation on mount
-    setIsVisible(true);
-    
-    // Get weather data for the specified city
-    const cityData = mockWeatherData[city as keyof typeof mockWeatherData];
-    if (cityData) {
-      setWeatherData(cityData);
-    }
-  }, [city]);
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div className="weather-container">
       <div 
         className={`weather-card ${isVisible ? 'visible' : ''}`}
-        style={{ background: weatherData.gradient }}
+        style={{ background: props.gradient }}
       >
         {/* Header */}
         <div className="weather-header">
-          <h2 className="city-name">{city}</h2>
-          <div className="weather-icon">{weatherData.icon}</div>
+          <h2 className="city-name">{props.city}</h2>
+          <div className="weather-icon">{props.icon}</div>
         </div>
 
         {/* Main Temperature */}
         <div className="temperature-section">
-          <div className="temperature">{weatherData.temperature}</div>
-          <div className="condition">{weatherData.condition}</div>
-          <div className="description">{weatherData.description}</div>
+          <div className="temperature">{props.temperature}</div>
+          <div className="condition">{props.condition}</div>
+          <div className="description">{props.description}</div>
         </div>
 
         {/* Weather Details */}
@@ -88,7 +48,7 @@ const WeatherComponent: React.FC<WeatherComponentProps> = ({ city }) => {
             <div className="detail-icon">💧</div>
             <div className="detail-info">
               <span className="detail-label">Humidity</span>
-              <span className="detail-value">{weatherData.humidity}</span>
+              <span className="detail-value">{props.humidity}</span>
             </div>
           </div>
           
@@ -96,7 +56,7 @@ const WeatherComponent: React.FC<WeatherComponentProps> = ({ city }) => {
             <div className="detail-icon">💨</div>
             <div className="detail-info">
               <span className="detail-label">Wind</span>
-              <span className="detail-value">{weatherData.windSpeed}</span>
+              <span className="detail-value">{props.windSpeed}</span>
             </div>
           </div>
         </div>

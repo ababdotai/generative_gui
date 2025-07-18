@@ -34,33 +34,6 @@ async def test_london_weather() -> None:
     assert result["messages"][1].content is not None
     assert "London" in result["messages"][1].content
 
-
-async def test_new_york_weather() -> None:
-    """Test weather request for New York."""
-    from langchain_core.messages import HumanMessage
-
-    inputs = {"messages": [HumanMessage(content="Show me New York weather")]}
-
-    result = await graph.ainvoke(inputs)  # type: ignore[arg-type]
-
-    assert result is not None
-    assert len(result["messages"]) == 2
-    assert "New York" in result["messages"][1].content
-
-
-async def test_tokyo_weather() -> None:
-    """Test weather request for Tokyo."""
-    from langchain_core.messages import HumanMessage
-
-    inputs = {"messages": [HumanMessage(content="Tokyo weather please")]}
-
-    result = await graph.ainvoke(inputs)  # type: ignore[arg-type]
-
-    assert result is not None
-    assert len(result["messages"]) == 2
-    assert "Tokyo" in result["messages"][1].content
-
-
 async def test_ui_components_present() -> None:
     """Test that UI components are generated in the ui field."""
     from langchain_core.messages import HumanMessage

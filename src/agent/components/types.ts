@@ -5,16 +5,6 @@
 // Weather component props
 export interface WeatherComponentProps {
   city: string;
-}
-
-// Todo component props
-export interface TodoComponentProps {
-  title: string;
-  tasks: string[];
-}
-
-// Weather data structure
-export interface WeatherData {
   temperature: string;
   condition: string;
   humidity: string;
@@ -24,12 +14,15 @@ export interface WeatherData {
   description: string;
 }
 
-// Mock weather data type
-export type MockWeatherData = {
-  [key: string]: WeatherData;
-};
+// Todo component props
+export interface TodoComponentProps {
+  title: string;
+  tasks: string[];
+}
 
-// Task item for todo component
+/**
+ * Task item for todo component
+ */
 export interface TaskItem {
   id: string;
   text: string;
