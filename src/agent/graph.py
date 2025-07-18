@@ -48,7 +48,7 @@ async def extract_city_with_openai(user_input: str) -> str:
     """Extract city name from user input using OpenAI API."""
     try:
         llm = ChatOpenAI(
-            model="gpt-3.5-turbo",
+            model=os.environ.get("OPENAI_MODEL_ID", "gpt-3.5-turbo"),
             temperature=0,
             api_key=os.getenv("OPENAI_API_KEY")
         )
@@ -204,7 +204,7 @@ async def todo_planner(state: AgentState) -> dict[str, list[AIMessage]]:
 
     # Initialize OpenAI client
     llm = ChatOpenAI(
-        model="gpt-3.5-turbo",
+        model=os.environ.get("OPENAI_MODEL_ID", "gpt-3.5-turbo"),
         temperature=0.7,
         api_key=os.getenv("OPENAI_API_KEY")
     )
