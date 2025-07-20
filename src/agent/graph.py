@@ -16,8 +16,6 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 from langgraph.graph.ui import AnyUIMessage, push_ui_message, ui_message_reducer, UIMessage
-# from langgraph.prebuilt import ToolNode  # Not needed anymore, using custom tool execution
-
 
 class WeatherOutput(TypedDict):
     """Weather output with comprehensive weather information."""
@@ -205,15 +203,21 @@ async def get_todo_data(request: str) -> dict:
         api_key=os.getenv("OPENAI_API_KEY")
     )
 
-    # Create prompt for task planning
+    # Create prompt for task planning with optimized constraints
     planning_prompt = f"""
-You are a helpful task planning assistant. Based on the user's request, create a detailed step-by-step plan.
+You are a helpful task planning assistant. Based on the user's request, create a concise and actionable plan.
 
 User request: {request}
 
 Please provide:
-1. A clear title for this plan
-2. A list of specific, actionable tasks in markdown bullet point format
+1. A clear, concise title for this plan (max 6 words)
+2. A list of 3-5 high-level, actionable tasks in markdown bullet point format
+
+Constraints:
+- Keep tasks at a high level, not detailed sub-steps
+- Each task should be a meaningful milestone
+- Limit to 3-5 tasks maximum for better focus
+- Make each task actionable and clear
 
 Format your response as:
 Title: [Your title here]
@@ -224,7 +228,7 @@ Tasks:
 - Task 3
 ...
 
-Make sure each task is specific and actionable.
+Make sure each task represents a significant step towards the goal.
 """
 
     try:
@@ -251,7 +255,7 @@ Make sure each task is specific and actionable.
 
         # Fallback if no tasks found
         if not tasks:
-            tasks = ["Review the request", "Plan the approach", "Execute the plan"]
+            tasks = ["Analyze requirements", "Create action plan", "Execute key steps", "Review progress"]
 
         todo_data = {
             "title": title,
@@ -272,12 +276,12 @@ Make sure each task is specific and actionable.
     except Exception as e:
         # Fallback response if API call fails
         fallback_data = {
-            "title": "Task Planning",
+            "title": "General Plan",
             "tasks": [
-                "Break down the request into smaller steps",
-                "Prioritize tasks by importance",
-                "Execute tasks one by one",
-                "Review and adjust as needed"
+                "Analyze the request",
+                "Plan your approach",
+                "Take action",
+                "Review results"
             ]
         }
         
@@ -323,13 +327,13 @@ async def call_model(state: AgentState) -> dict[str, list[BaseMessage]]:
             "type": "function",
             "function": {
                 "name": "get_todo_data",
-                "description": "Create a task planning list based on user request. This tool will display a todo UI component with organized tasks.",
+                "description": "Create a task planning list when users ask for help with planning, organizing, preparing, or need step-by-step guidance. Use this for requests about planning events, preparing for activities, organizing tasks, creating schedules, or breaking down complex goals. This tool will display a todo UI component with organized tasks.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "request": {
                             "type": "string",
-                            "description": "The user's request for task planning or organization"
+                            "description": "The user's request that needs to be broken down into actionable tasks or steps"
                         }
                     },
                     "required": ["request"]
@@ -350,12 +354,23 @@ async def call_model(state: AgentState) -> dict[str, list[BaseMessage]]:
         content="""You are a helpful AI assistant with access to weather and task planning tools. 
         
 Use the available tools when users ask for:
-- Weather information (use get_weather_data)
-- Task planning, scheduling, or organization help (use get_todo_data)
+- Weather information (use get_weather_data): When users ask about weather, temperature, conditions in any city
+- Task planning and organization (use get_todo_data): When users need help with:
+  * Planning events, trips, activities, or projects
+  * Preparing for interviews, meetings, exams, or presentations
+  * Organizing tasks, schedules, or workflows
+  * Breaking down complex goals into steps
+  * Creating action plans or to-do lists
+  * Getting guidance on how to approach something
 
-You can call multiple tools in a single response if the user's request requires it. For example, if someone asks "What's the weather like and how should I plan my day?", you can call both tools.
-        
-For general conversation that doesn't require these tools, respond directly in a friendly and helpful manner."""
+Examples of when to use get_todo_data:
+- "Help me prepare for a job interview"
+- "I want to plan a birthday party"
+- "How should I organize my study schedule?"
+- "I need to start a business, where do I begin?"
+- "Help me plan my weekend"
+
+You can call multiple tools in a single response if needed. For general conversation that doesn't require planning or weather, respond directly."""
     )
     
     # Prepare messages for the model
