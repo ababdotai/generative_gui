@@ -1,20 +1,22 @@
 """LangGraph Generative UI Agent.
 
-A simple weather agent that demonstrates generative UI components.
+A true agent that uses LLM to decide between direct responses and tool calls.
 """
 
 import os
 import re
 import uuid
 import json
-from typing import Annotated, Sequence, TypedDict
+from typing import Annotated, Sequence, TypedDict, Literal
 
 import httpx
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage, SystemMessage
+from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
-from langgraph.graph import StateGraph
+from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
-from langgraph.graph.ui import AnyUIMessage, push_ui_message, ui_message_reducer
+from langgraph.graph.ui import AnyUIMessage, push_ui_message, ui_message_reducer, UIMessage
+# from langgraph.prebuilt import ToolNode  # Not needed anymore, using custom tool execution
 
 
 class WeatherOutput(TypedDict):
@@ -135,44 +137,38 @@ def format_weather_data(weather_response: dict, city: str) -> WeatherOutput:
     )
 
 
-async def weather(state: AgentState) -> dict[str, list[AIMessage]]:
-    """Weather node that generates UI components with real weather data."""
-    # Get user input from the last message
-    last_message = state["messages"][-1] if state["messages"] else None
-    user_input = last_message.content if last_message else ""
-
-    # Ensure user_input is a string for processing
-    if isinstance(user_input, list):
-        user_input = " ".join(str(item) for item in user_input)
-    user_input = str(user_input)
-
-    try:
-        # Extract city using OpenAI API
-        city = await extract_city_with_openai(user_input)
+async def get_weather_data(city: str) -> dict:
+    """Get weather data for a specific city and return with UI component.
+    
+    Args:
+        city: The name of the city to get weather for
         
+    Returns:
+        Dictionary with 'result' (text) and 'ui_components' (list of UI data)
+    """
+    try:
         # Fetch real weather data
         weather_response = await fetch_weather_data(city)
-        
-        # Format the weather data for UI
         weather_data = format_weather_data(weather_response, city)
         
-        message = AIMessage(
-            id=str(uuid.uuid4()), 
-            content=f"Here's the current weather for {city}: {weather_data['condition']}, {weather_data['temperature']}"
-        )
+        # Create UI component data
+        ui_component = {
+            "type": "weather",
+            "data": weather_data
+        }
         
-        # Emit UI elements associated with the message
-        push_ui_message("weather", dict(weather_data), message=message)
-        
-        return {"messages": [message]}
+        return {
+            "result": f"Here's the current weather for {weather_data['city']}: {weather_data['temperature']}, {weather_data['condition']}. {weather_data['description']}",
+            "ui_components": [ui_component]
+        }
         
     except Exception as e:
         # Fallback to mock data if API calls fail
-        city = "San Francisco"  # Default fallback
+        city_fallback = city or "San Francisco"
         
         # Create fallback weather data
         fallback_weather: WeatherOutput = {
-            "city": city,
+            "city": city_fallback,
             "temperature": "72°F",
             "condition": "Partly Cloudy",
             "humidity": "65%",
@@ -182,26 +178,26 @@ async def weather(state: AgentState) -> dict[str, list[AIMessage]]:
             "description": "Weather data unavailable, showing sample data"
         }
         
-        message = AIMessage(
-            id=str(uuid.uuid4()), 
-            content=f"Weather service temporarily unavailable. Showing sample data for {city}. Error: {str(e)}"
-        )
+        ui_component = {
+            "type": "weather",
+            "data": fallback_weather
+        }
         
-        push_ui_message("weather", dict(fallback_weather), message=message)
-        return {"messages": [message]}
+        return {
+            "result": f"Here's the weather for {fallback_weather['city']}: {fallback_weather['temperature']}, {fallback_weather['condition']}. {fallback_weather['description']}",
+            "ui_components": [ui_component]
+        }
 
 
-async def todo_planner(state: AgentState) -> dict[str, list[AIMessage]]:
-    """Todo planner node that generates task lists using OpenAI."""
-    # Get the last user message
-    last_message = state["messages"][-1] if state["messages"] else None
-    user_input = last_message.content if last_message else ""
-
-    # Ensure user_input is a string for processing
-    if isinstance(user_input, list):
-        user_input = " ".join(str(item) for item in user_input)
-    user_input = str(user_input)
-
+async def get_todo_data(request: str) -> dict:
+    """Create task plan data based on user request and return with UI component.
+    
+    Args:
+        request: The user's request for task planning
+        
+    Returns:
+        Dictionary with 'result' (text) and 'ui_components' (list of UI data)
+    """
     # Initialize OpenAI client
     llm = ChatOpenAI(
         model=os.environ.get("OPENAI_MODEL_ID", "gpt-3.5-turbo"),
@@ -213,7 +209,7 @@ async def todo_planner(state: AgentState) -> dict[str, list[AIMessage]]:
     planning_prompt = f"""
 You are a helpful task planning assistant. Based on the user's request, create a detailed step-by-step plan.
 
-User request: {user_input}
+User request: {request}
 
 Please provide:
 1. A clear title for this plan
@@ -257,24 +253,25 @@ Make sure each task is specific and actionable.
         if not tasks:
             tasks = ["Review the request", "Plan the approach", "Execute the plan"]
 
-        todo_data: TodoOutput = {
+        todo_data = {
             "title": title,
             "tasks": tasks
         }
-
-        message = AIMessage(
-            id=str(uuid.uuid4()),
-            content=f"I've created a task plan for: {title}"
-        )
-
-        # Emit UI elements associated with the message
-        push_ui_message("todo", dict(todo_data), message=message)
-
-        return {"messages": [message]}
+        
+        # Create UI component data
+        ui_component = {
+            "type": "todo",
+            "data": todo_data
+        }
+        
+        return {
+            "result": f"I've created a task plan titled '{title}' with {len(tasks)} actionable steps to help you achieve your goal.",
+            "ui_components": [ui_component]
+        }
 
     except Exception as e:
         # Fallback response if API call fails
-        fallback_todo: TodoOutput = {
+        fallback_data = {
             "title": "Task Planning",
             "tasks": [
                 "Break down the request into smaller steps",
@@ -283,53 +280,162 @@ Make sure each task is specific and actionable.
                 "Review and adjust as needed"
             ]
         }
+        
+        ui_component = {
+            "type": "todo",
+            "data": fallback_data
+        }
+        
+        return {
+            "result": f"I've created a general task plan with {len(fallback_data['tasks'])} steps to help you get started.",
+            "ui_components": [ui_component]
+        }
 
-        message = AIMessage(
+
+# Note: weather_node and todo_node functions have been removed as their functionality
+# is now integrated into the call_model function with tool calling support
+
+
+async def call_model(state: AgentState) -> dict[str, list[BaseMessage]]:
+    """Main model calling function with tool support and UI component handling."""
+    messages = state["messages"]
+    
+    # Define available tools
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "get_weather_data",
+                "description": "Get current weather information for a specific city. This tool will display a weather UI component with detailed weather data.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "city": {
+                            "type": "string",
+                            "description": "The name of the city to get weather for"
+                        }
+                    },
+                    "required": ["city"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "get_todo_data",
+                "description": "Create a task planning list based on user request. This tool will display a todo UI component with organized tasks.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "request": {
+                            "type": "string",
+                            "description": "The user's request for task planning or organization"
+                        }
+                    },
+                    "required": ["request"]
+                }
+            }
+        }
+    ]
+    
+    # Initialize LLM with tools
+    llm = ChatOpenAI(
+        model=os.environ.get("OPENAI_MODEL_ID", "gpt-3.5-turbo"),
+        temperature=0.7,
+        api_key=os.getenv("OPENAI_API_KEY")
+    ).bind_tools(tools)
+    
+    # Add system message for tool usage guidance
+    system_message = SystemMessage(
+        content="""You are a helpful AI assistant with access to weather and task planning tools. 
+        
+Use the available tools when users ask for:
+- Weather information (use get_weather_data)
+- Task planning, scheduling, or organization help (use get_todo_data)
+
+You can call multiple tools in a single response if the user's request requires it. For example, if someone asks "What's the weather like and how should I plan my day?", you can call both tools.
+        
+For general conversation that doesn't require these tools, respond directly in a friendly and helpful manner."""
+    )
+    
+    # Prepare messages for the model
+    model_messages = [system_message] + messages
+    
+    try:
+        # Call the model
+        response = await llm.ainvoke(model_messages)
+        
+        # Check if the model wants to use tools
+        if response.tool_calls:
+            # Process each tool call
+            tool_messages = []
+            
+            for tool_call in response.tool_calls:
+                tool_name = tool_call["name"]
+                tool_args = tool_call["args"]
+                tool_call_id = tool_call["id"]
+                
+                try:
+                    # Execute the tool
+                    if tool_name == "get_weather_data":
+                        tool_result = await get_weather_data(tool_args["city"])
+                    elif tool_name == "get_todo_data":
+                        tool_result = await get_todo_data(tool_args["request"])
+                    else:
+                        tool_result = {"result": f"Unknown tool: {tool_name}", "ui_components": []}
+                    
+                    # Create tool message
+                    tool_message = ToolMessage(
+                        content=tool_result["result"],
+                        tool_call_id=tool_call_id
+                    )
+                    tool_messages.append(tool_message)
+                    
+                    # Process UI components using push_ui_message
+                    for ui_component in tool_result.get("ui_components", []):
+                        # Create an AIMessage for this UI component
+                        ui_message = AIMessage(
+                            id=str(uuid.uuid4()),
+                            content=tool_result["result"]
+                        )
+                        
+                        # Emit UI elements associated with the message
+                        push_ui_message(
+                            ui_component["type"],
+                            ui_component["data"],
+                            message=ui_message
+                        )
+                        tool_messages.append(ui_message)
+                        
+                except Exception as e:
+                    # Handle tool execution errors
+                    error_message = ToolMessage(
+                        content=f"Error executing {tool_name}: {str(e)}",
+                        tool_call_id=tool_call_id
+                    )
+                    tool_messages.append(error_message)
+
+            # Return all messages (tool response and final response)
+            return {"messages": [response] + tool_messages}
+        
+        else:
+            # No tools called, return the direct response
+            return {"messages": [response]}
+            
+    except Exception as e:
+        # Fallback response on error
+        error_response = AIMessage(
             id=str(uuid.uuid4()),
-            content=f"I've created a basic task plan (API unavailable: {str(e)})"
+            content=f"I apologize, but I encountered an error while processing your request. Please try again. Error: {str(e)}"
         )
-
-        push_ui_message("todo", dict(fallback_todo), message=message)
-        return {"messages": [message]}
+        return {"messages": [error_response]}
 
 
-async def route_request(state: AgentState) -> str:
-    """Route requests to appropriate handler based on content."""
-    last_message = state["messages"][-1] if state["messages"] else None
-    user_input = last_message.content if last_message else ""
-    
-    # Ensure user_input is a string for processing
-    if isinstance(user_input, list):
-        user_input = " ".join(str(item) for item in user_input)
-    user_input = str(user_input).lower()
-    
-    # Check for todo/task/plan related keywords
-    todo_keywords = ["todo", "task", "plan", "steps", "organize", "schedule", "checklist"]
-    weather_keywords = ["weather", "temperature", "forecast", "rain", "sunny", "cloudy"]
-    
-    # Count keyword matches
-    todo_score = sum(1 for keyword in todo_keywords if keyword in user_input)
-    weather_score = sum(1 for keyword in weather_keywords if keyword in user_input)
-    
-    # Route based on keyword matches
-    if todo_score > weather_score:
-        return "todo_planner"
-    else:
-        return "weather"
-
-
-# Define the graph
+# Simplified graph with only call_model node
 graph = (
     StateGraph(AgentState)
-    .add_node("weather", weather)
-    .add_node("todo_planner", todo_planner)
-    .add_conditional_edges(
-        "__start__",
-        route_request,
-        {
-            "weather": "weather",
-            "todo_planner": "todo_planner"
-        }
-    )
+    .add_node("call_model", call_model)
+    .add_edge("__start__", "call_model")
+    .add_edge("call_model", END)
     .compile()
 )
