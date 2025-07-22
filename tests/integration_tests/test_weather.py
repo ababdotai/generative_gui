@@ -4,14 +4,17 @@ import os
 import pytest
 from unittest.mock import patch, AsyncMock
 
-from agent.graph import weather, extract_city_with_openai, fetch_weather_data, format_weather_data
+from agent.handlers.weather import WeatherHandler
+from agent.handlers.registry import get_component_handler
 from langchain_core.messages import HumanMessage
 
 
 @pytest.mark.asyncio
 async def test_extract_city_with_openai():
-    """Test city extraction using OpenAI API."""
-    with patch('agent.graph.ChatOpenAI') as mock_llm_class:
+    """Test city extraction using OpenAI API through WeatherHandler."""
+    handler = WeatherHandler()
+    
+    with patch('agent.handlers.weather.ChatOpenAI') as mock_llm_class:
         # Mock the LLM response
         mock_llm = AsyncMock()
         mock_response = AsyncMock()
@@ -20,7 +23,7 @@ async def test_extract_city_with_openai():
         mock_llm_class.return_value = mock_llm
         
         # Test city extraction
-        city = await extract_city_with_openai("What's the weather in Beijing?")
+        city = await handler._extract_city_with_openai("What's the weather in Beijing?")
         assert city == "Beijing"
         
         # Verify the LLM was called correctly
@@ -36,12 +39,13 @@ async def test_extract_city_with_openai():
     reason="WEATHER_API_KEY not set, skipping real API test"
 )
 async def test_fetch_weather_data():
-    """Test weather data fetching from real WeatherAPI."""
+    """Test weather data fetching from real WeatherAPI through WeatherHandler."""
+    handler = WeatherHandler()
     # Test with a well-known city
     city = "London"
     
     try:
-        result = await fetch_weather_data(city)
+        result = await handler._fetch_weather_data(city)
         
         # Verify the response structure
         assert isinstance(result, dict)
@@ -77,7 +81,8 @@ async def test_fetch_weather_data():
 
 
 def test_format_weather_data():
-    """Test weather data formatting."""
+    """Test weather data formatting through WeatherHandler."""
+    handler = WeatherHandler()
     mock_api_response = {
         "current": {
             "temp_f": 97.2,
@@ -89,7 +94,7 @@ def test_format_weather_data():
         }
     }
     
-    result = format_weather_data(mock_api_response, "Beijing")
+    result = handler._format_weather_data(mock_api_response, "Beijing")
     
     assert result["city"] == "Beijing"
     assert result["temperature"] == "97.2°F"
@@ -101,21 +106,14 @@ def test_format_weather_data():
 
 
 @pytest.mark.asyncio
-async def test_weather_node_success():
-    """Test the weather node with successful API calls."""
-    from langgraph.config import RunnableConfig
-    
-    state = {
-        "messages": [HumanMessage(content="What's the weather in Tokyo?")],
-        "ui": []
-    }
-    
-    config = RunnableConfig(configurable={})
+async def test_weather_handler_success():
+    """Test the weather handler with successful API calls."""
+    handler = WeatherHandler()
     
     # Mock all the API calls
-    with patch('agent.graph.extract_city_with_openai') as mock_extract, \
-         patch('agent.graph.fetch_weather_data') as mock_fetch, \
-         patch('agent.graph.format_weather_data') as mock_format:
+    with patch.object(handler, '_extract_city_with_openai') as mock_extract, \
+         patch.object(handler, '_fetch_weather_data') as mock_fetch, \
+         patch.object(handler, '_format_weather_data') as mock_format:
         
         mock_extract.return_value = "Tokyo"
         mock_fetch.return_value = {"current": {"temp_f": 75}}
@@ -130,43 +128,33 @@ async def test_weather_node_success():
             "description": "Clear and sunny"
         }
         
-        # Mock the push_ui_message function to avoid config issues
-        with patch('agent.graph.push_ui_message') as mock_push:
-            result = await weather(state)
-            
-            # Verify the result structure
-            assert "messages" in result
-            assert len(result["messages"]) == 1
-            assert "Tokyo" in result["messages"][0].content
-            assert "Clear" in result["messages"][0].content
-            
-            # Verify API calls were made
-            mock_extract.assert_called_once_with("What's the weather in Tokyo?")
-            mock_fetch.assert_called_once_with("Tokyo")
-            mock_format.assert_called_once()
-            mock_push.assert_called_once()
+        result = await handler.process_request("What's the weather in Tokyo?", "en")
+        
+        # Verify the result structure
+        assert "result" in result
+        assert "ui_components" in result
+        assert "Tokyo" in result["result"]
+        assert "Clear" in result["result"]
+        
+        # Verify API calls were made
+        mock_extract.assert_called_once_with("What's the weather in Tokyo?")
+        mock_fetch.assert_called_once_with("Tokyo")
+        mock_format.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_weather_node_fallback():
-    """Test the weather node fallback when API calls fail."""
-    from langgraph.config import RunnableConfig
-    
-    state = {
-        "messages": [HumanMessage(content="What's the weather?")],
-        "ui": []
-    }
-    
-    config = RunnableConfig(configurable={})
+async def test_weather_handler_fallback():
+    """Test the weather handler fallback when API calls fail."""
+    handler = WeatherHandler()
     
     # Mock API failure
-    with patch('agent.graph.extract_city_with_openai', side_effect=Exception("API Error")), \
-         patch('agent.graph.push_ui_message') as mock_push:
-        result = await weather(state)
+    with patch.object(handler, '_extract_city_with_openai', side_effect=Exception("API Error")):
+        result = await handler.process_request("What's the weather?", "en")
         
         # Verify fallback behavior
-        assert "messages" in result
-        assert len(result["messages"]) == 1
-        assert "unavailable" in result["messages"][0].content.lower()
-        assert "San Francisco" in result["messages"][0].content
-        mock_push.assert_called_once()
+        assert "result" in result
+        assert "ui_components" in result
+        assert "San Francisco" in result["result"]  # Default fallback city
+        
+        # Verify UI components were still created
+        assert len(result["ui_components"]) > 0
