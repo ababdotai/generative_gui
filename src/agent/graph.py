@@ -17,6 +17,56 @@ from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 from langgraph.graph.ui import AnyUIMessage, push_ui_message, ui_message_reducer, UIMessage
 
+# Language detection function
+def detect_language(text: str) -> str:
+    """Detect the language of the input text.
+    
+    Args:
+        text: Input text to analyze
+        
+    Returns:
+        Language code: 'zh' for Chinese, 'ja' for Japanese, 'en' for English
+    """
+    # Japanese characters detection (Hiragana, Katakana) - check first
+    if re.search(r'[\u3040-\u309f\u30a0-\u30ff]', text):
+        return 'ja'
+    
+    # Chinese characters detection (CJK Unified Ideographs)
+    if re.search(r'[\u4e00-\u9fff]', text):
+        return 'zh'
+    
+    # Default to English
+    return 'en'
+
+# Multi-language response templates
+RESPONSE_TEMPLATES = {
+    'weather': {
+        'en': "Here's the current weather for {city}: {temperature}, {condition}. {description}",
+        'zh': "这是{city}的当前天气：{temperature}，{condition}。{description}",
+        'ja': "{city}の現在の天気：{temperature}、{condition}。{description}"
+    },
+    'weather_fallback': {
+        'en': "Here's the weather information for {city}: {temperature}, {condition}. {description}",
+        'zh': "这是{city}的天气信息：{temperature}，{condition}。{description}",
+        'ja': "{city}の天気情報：{temperature}、{condition}。{description}"
+    },
+    'todo_success': {
+        'en': "I've created a task plan titled '{title}' with {count} actionable steps to help you achieve your goal.",
+        'zh': "我已经创建了一个名为'{title}'的任务计划，包含{count}个可执行步骤来帮助您实现目标。",
+        'ja': "'{title}'というタスクプランを作成しました。目標達成のために{count}個の実行可能なステップが含まれています。"
+    },
+    'video_editing_success': {
+        'en': "I've created a video editing plan titled '{title}' with {removal_count} removal tasks and {addition_count} addition tasks ({total_count} total tasks) to help you complete your video editing project.",
+        'zh': "我已经创建了一个名为'{title}'的视频编辑计划，包含{removal_count}个移除任务和{addition_count}个添加任务（共{total_count}个任务）来帮助您完成视频编辑项目。",
+        'ja': "'{title}'というビデオ編集プランを作成しました。{removal_count}個の削除タスクと{addition_count}個の追加タスク（合計{total_count}個のタスク）でビデオ編集プロジェクトの完成をサポートします。"
+    },
+    'video_editing_fallback': {
+        'en': "I've created a general video editing plan with removal and addition tasks to help you with your video editing project.",
+        'zh': "我已经创建了一个通用的视频编辑计划，包含移除和添加任务来帮助您的视频编辑项目。",
+        'ja': "ビデオ編集プロジェクトをサポートするために、削除と追加のタスクを含む一般的なビデオ編集プランを作成しました。"
+    }
+}
+
 class WeatherOutput(TypedDict):
     """Weather output with comprehensive weather information."""
 
@@ -152,11 +202,12 @@ def format_weather_data(weather_response: dict, city: str) -> WeatherOutput:
     )
 
 
-async def get_weather_data(city: str) -> dict:
+async def get_weather_data(city: str, language: str = 'en') -> dict:
     """Get weather data for a specific city and return with UI component.
     
     Args:
         city: The name of the city to get weather for
+        language: Language code for response ('en', 'zh', 'ja')
         
     Returns:
         Dictionary with 'result' (text) and 'ui_components' (list of UI data)
@@ -172,8 +223,17 @@ async def get_weather_data(city: str) -> dict:
             "data": weather_data
         }
         
+        # Generate response in appropriate language
+        template = RESPONSE_TEMPLATES['weather'][language]
+        result_text = template.format(
+            city=weather_data['city'],
+            temperature=weather_data['temperature'],
+            condition=weather_data['condition'],
+            description=weather_data['description']
+        )
+        
         return {
-            "result": f"Here's the current weather for {weather_data['city']}: {weather_data['temperature']}, {weather_data['condition']}. {weather_data['description']}",
+            "result": result_text,
             "ui_components": [ui_component]
         }
         
@@ -198,17 +258,27 @@ async def get_weather_data(city: str) -> dict:
             "data": fallback_weather
         }
         
+        # Generate fallback response in appropriate language
+        template = RESPONSE_TEMPLATES['weather_fallback'][language]
+        result_text = template.format(
+            city=fallback_weather['city'],
+            temperature=fallback_weather['temperature'],
+            condition=fallback_weather['condition'],
+            description=fallback_weather['description']
+        )
+        
         return {
-            "result": f"Here's the weather for {fallback_weather['city']}: {fallback_weather['temperature']}, {fallback_weather['condition']}. {fallback_weather['description']}",
+            "result": result_text,
             "ui_components": [ui_component]
         }
 
 
-async def get_todo_data(request: str) -> dict:
+async def get_todo_data(request: str, language: str = 'en') -> dict:
     """Create task plan data based on user request and return with UI component.
     
     Args:
-        request: The user's request for task planning
+        request: The user's request that needs to be broken down into tasks
+        language: Language code for response ('en', 'zh', 'ja')
         
     Returns:
         Dictionary with 'result' (text) and 'ui_components' (list of UI data)
@@ -286,8 +356,15 @@ IMPORTANT: You must respond in exactly the same language as the user's request.
             "data": todo_data
         }
         
+        # Generate response in appropriate language
+        template = RESPONSE_TEMPLATES['todo_success'][language]
+        result_text = template.format(
+            title=title,
+            count=len(tasks)
+        )
+        
         return {
-            "result": f"I've created a task plan titled '{title}' with {len(tasks)} actionable steps to help you achieve your goal.",
+            "result": result_text,
             "ui_components": [ui_component]
         }
 
@@ -314,11 +391,12 @@ IMPORTANT: You must respond in exactly the same language as the user's request.
         }
 
 
-async def get_video_editing_data(request: str) -> dict:
-    """Create video editing task data based on user request and return with UI component.
+async def get_video_editing_data(request: str, language: str = 'en') -> dict:
+    """Create video editing task plan based on user request and return with UI component.
     
     Args:
-        request: The user's request for video editing help
+        request: The user's video editing request
+        language: Language code for response ('en', 'zh', 'ja')
         
     Returns:
         Dictionary with 'result' (text) and 'ui_components' (list of UI data)
@@ -463,8 +541,18 @@ Requirements:
         }
         
         total_tasks = len(subtraction_task_objects) + len(addition_task_objects)
+        
+        # Generate response in appropriate language
+        template = RESPONSE_TEMPLATES['video_editing_success'][language]
+        result_text = template.format(
+            title=title,
+            removal_count=len(subtraction_task_objects),
+            addition_count=len(addition_task_objects),
+            total_count=total_tasks
+        )
+        
         return {
-            "result": f"I've created a video editing plan titled '{title}' with {len(subtraction_task_objects)} removal tasks and {len(addition_task_objects)} addition tasks ({total_tasks} total tasks) to help you complete your video editing project.",
+            "result": result_text,
             "ui_components": [ui_component]
         }
 
@@ -491,8 +579,12 @@ Requirements:
             "data": fallback_data
         }
         
+        # Generate fallback response in appropriate language
+        template = RESPONSE_TEMPLATES['video_editing_fallback'][language]
+        result_text = template
+        
         return {
-            "result": f"I've created a video editing plan with 2 removal tasks and 2 addition tasks to help you get started with your project.",
+            "result": result_text,
             "ui_components": [ui_component]
         }
 
@@ -504,6 +596,28 @@ Requirements:
 async def call_model(state: AgentState) -> dict[str, list[BaseMessage]]:
     """Main model calling function with tool support and UI component handling."""
     messages = state["messages"]
+    
+    # Detect language from the latest user message
+    user_language = 'en'  # Default to English
+    if messages:
+        latest_message = messages[-1]
+        if hasattr(latest_message, 'content') and latest_message.content:
+            # Handle both string and list content types
+            content = latest_message.content
+            if isinstance(content, list):
+                # If content is a list, extract text from the first text element
+                text_content = ""
+                for item in content:
+                    if isinstance(item, dict) and item.get('type') == 'text':
+                        text_content = item.get('text', '')
+                        break
+                    elif isinstance(item, str):
+                        text_content = item
+                        break
+                if text_content:
+                    user_language = detect_language(text_content)
+            elif isinstance(content, str):
+                user_language = detect_language(content)
     
     # Define available tools
     tools = [
@@ -625,13 +739,13 @@ IMPORTANT: You must respond in exactly the same language as the user's request."
                 tool_call_id = tool_call["id"]
                 
                 try:
-                    # Execute the tool
+                    # Execute the tool with language parameter
                     if tool_name == "get_weather_data":
-                        tool_result = await get_weather_data(tool_args["city"])
+                        tool_result = await get_weather_data(tool_args["city"], user_language)
                     elif tool_name == "get_todo_data":
-                        tool_result = await get_todo_data(tool_args["request"])
+                        tool_result = await get_todo_data(tool_args["request"], user_language)
                     elif tool_name == "get_video_editing_data":
-                        tool_result = await get_video_editing_data(tool_args["request"])
+                        tool_result = await get_video_editing_data(tool_args["request"], user_language)
                     else:
                         tool_result = {"result": f"Unknown tool: {tool_name}", "ui_components": []}
                     
