@@ -1,21 +1,25 @@
-# LangGraph Multi-Agent with Generative UI
+# Generative UI with LangGraph
 
 [![CI](https://github.com/langchain-ai/new-langgraph-project/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/langchain-ai/new-langgraph-project/actions/workflows/unit-tests.yml)
 [![Integration Tests](https://github.com/langchain-ai/new-langgraph-project/actions/workflows/integration-tests.yml/badge.svg)](https://github.com/langchain-ai/new-langgraph-project/actions/workflows/integration-tests.yml)
 
-A sophisticated multi-agent system built with [LangGraph](https://github.com/langchain-ai/langgraph) that demonstrates **Generative UI** capabilities. The agent intelligently routes between weather queries and task planning, responding with both conversational text and rich, animated UI components.
+A sophisticated multi-agent system built with [LangGraph](https://github.com/langchain-ai/langgraph) that demonstrates advanced **Generative UI** capabilities. The system intelligently routes between multiple specialized handlers including weather queries, task planning, and video editing workflows, responding with both conversational text and rich, interactive UI components.
 
 <div align="center">
-  <img src="./static/studio_ui.png" alt="Graph view in LangGraph studio UI" width="75%" />
+  <img src="./static/multi_ui.png" alt="multi_ui_in_one" width="75%" />
 </div>
+
 
 ## Features
 
-🌤️ **Smart City Detection** - Automatically identifies cities from natural language queries  
+🌤️ **Real Weather Data** - Integrates with WeatherAPI for live weather information with intelligent city detection  
 📝 **AI-Powered Task Planning** - Uses OpenAI to generate detailed step-by-step plans from user requests  
-🎨 **Generative UI** - Backend dynamically commands frontend to render specific components  
-✨ **Animated Components** - Modern glass morphism design with interactive todo lists and weather cards  
-🧠 **Intelligent Routing** - Automatically routes between weather and task planning based on query content  
+🎬 **Video Editing Workflows** - Specialized dual-column task management for video editing projects  
+🎨 **Advanced Generative UI** - Backend dynamically commands frontend to render specialized components  
+✨ **Rich Interactive Components** - Modern TypeScript React components with animations and progress tracking  
+🧠 **Intelligent Multi-Agent Routing** - LLM-powered routing between weather, todo, and video editing handlers  
+🌍 **Multi-language Support** - Automatic language detection with responses in English, Chinese, and Japanese  
+🏗️ **Modular Architecture** - Component-based handlers with extensible registry system  
 🔄 **Hot Reload Development** - Real-time updates during development with LangGraph Studio  
 🧪 **Comprehensive Testing** - Unit and integration tests with CI/CD workflows
 
@@ -23,33 +27,56 @@ A sophisticated multi-agent system built with [LangGraph](https://github.com/lan
 
 ### Weather Queries
 1. **User Input**: "What's the weather in London?"
-2. **Smart Routing**: Agent identifies weather-related keywords
-3. **City Detection**: Agent identifies "London" from the query
-4. **Dual Response**: 
-   - Conversational AI message: "Here's the weather for London"
-   - UI Command: Renders animated weather card for London
-5. **Rich Display**: Interactive weather card with temperature, conditions, and animations
+2. **Intelligent Routing**: LLM analyzes request and routes to weather handler
+3. **City Detection**: OpenAI-powered extraction of city from natural language
+4. **Live Data Fetch**: Integrates with WeatherAPI for real-time weather information
+5. **Dual Response**: 
+   - Conversational AI message: "Here's the current weather for London"
+   - UI Component: Renders animated weather card with live data
+6. **Rich Display**: Interactive weather card with temperature, conditions, humidity, and wind speed
 
 ### Task Planning
 1. **User Input**: "Help me plan a birthday party"
-2. **Smart Routing**: Agent identifies task/planning keywords
-3. **OpenAI Integration**: Calls GPT-3.5-turbo to generate detailed plan
+2. **Intelligent Routing**: LLM identifies task planning intent and routes to todo handler
+3. **AI Task Generation**: OpenAI generates detailed, actionable task breakdown
 4. **Dual Response**:
    - Conversational AI message: "I've created a task plan for: Birthday Party Planning"
-   - UI Command: Renders interactive todo list with checkboxes
+   - UI Component: Renders interactive todo list with checkboxes
 5. **Rich Display**: Animated todo card with progress tracking and completion badges
 
-### Supported Cities
-- **London** 🌧️ - Gray stormy gradient (59°F)
-- **New York** ☀️ - Sunny orange gradient (68°F) 
-- **Tokyo** 🌤️ - Pink sunset gradient (75°F)
-- **San Francisco** ⛅ - Blue ocean gradient (72°F, default)
+### Video Editing Workflows
+1. **User Input**: "Help me edit a promotional video"
+2. **Intelligent Routing**: LLM identifies video editing intent and routes to video editing handler
+3. **Workflow Generation**: AI creates specialized subtraction and addition task lists
+4. **Dual Response**:
+   - Conversational AI message: "I've created a video editing plan with removal and addition tasks"
+   - UI Component: Renders dual-column interface with separate task categories
+5. **Rich Display**: Professional diff-like interface with separate progress tracking for each task type
 
-### Example Todo Queries
+### Supported Query Types
+
+#### Weather Queries
+- "What's the weather in London?"
+- "Current temperature in Tokyo"
+- "Weather forecast for New York"
+- "Is it raining in San Francisco?"
+
+#### Task Planning Queries
 - "Create a checklist for moving to a new apartment"
 - "Help me organize my work schedule"
 - "Plan steps for learning a new programming language"
 - "What tasks do I need for hosting a dinner party?"
+
+#### Video Editing Queries
+- "Help me edit a promotional video"
+- "Video editing workflow for social media content"
+- "Steps to create a product demo video"
+- "Edit a wedding video with music and transitions"
+
+#### Multi-language Support
+- **English**: "What's the weather like?"
+- **Chinese**: "今天天气怎么样？"
+- **Japanese**: "今日の天気はどうですか？"
 
 ## Getting Started
 
@@ -74,11 +101,12 @@ pip install -e . "langgraph-cli[inmem]"
 cp .env.example .env
 ```
 
-**Required for Todo Planning**: Add your OpenAI API key to enable task planning functionality:
+**Required API Keys**: Add your API keys to enable full functionality:
 
 ```text
 # .env
 OPENAI_API_KEY=your_openai_api_key_here
+WEATHER_API_KEY=your_weatherapi_key_here
 ```
 
 **Optional**: If you want to enable LangSmith tracing, add your LangSmith API key:
@@ -88,13 +116,22 @@ OPENAI_API_KEY=your_openai_api_key_here
 LANGSMITH_API_KEY=lsv2...
 ```
 
-> **Note**: Without an OpenAI API key, the todo planner will fall back to a basic template with generic tasks.
+> **API Key Requirements**:
+> - **OpenAI API Key**: Required for intelligent routing, task planning, and video editing workflows
+> - **WeatherAPI Key**: Required for real-time weather data (get free key at [weatherapi.com](https://www.weatherapi.com/))
+> - Without these keys, handlers will fall back to basic templates with mock data
 
 3. Start the LangGraph Server.
 
 ```shell
 langgraph dev
 ```
+
+4. Open `https://agentchat.vercel.app/` in Chrome, and connect to local server.
+
+<div align="center">
+  <img src="./static/connect.png" alt="multi_ui_in_one" width="75%" />
+</div>
 
 For more information on getting started with LangGraph Server, [see here](https://langchain-ai.github.io/langgraph/tutorials/langgraph-platform/local-server/).
 
@@ -103,56 +140,89 @@ For more information on getting started with LangGraph Server, [see here](https:
 ### Core Components
 
 - **`langgraph.json`** - Configuration hub connecting backend graph to frontend UI
-- **`src/agent/graph.py`** - Weather agent with city detection and UI emission logic
-- **`src/agent/ui.tsx`** - Animated React weather card component
+- **`src/agent/graph.py`** - Multi-agent graph with intelligent routing and component handling
+- **`src/agent/handlers/`** - Modular component handlers (weather, todo, video_editing)
+- **`src/agent/components/`** - TypeScript React UI components with animations
+- **`src/agent/utils/`** - Language detection and response formatting utilities
 - **`tests/`** - Comprehensive unit and integration test suites
 
-### Generative UI Flow
+### Multi-Agent Generative UI Flow
 
 ```
-User Query → City Detection → Dual Response
-    ↓              ↓              ↓
-"weather in    "London"     AI Message +
- london"                    UI Command
-                                ↓
-                         WeatherComponent
-                         (London styling)
+User Query → Language Detection → LLM Routing → Handler Processing → Dual Response
+    ↓              ↓                   ↓              ↓                ↓
+"help edit    Auto-detect        Route to         Generate         AI Message +
+ video"       language           VideoHandler     tasks            UI Component
+                                      ↓                              ↓
+                                 Subtraction/                VideoEditingComponent
+                                 Addition Tasks              (Dual-column layout)
 ```
 
-### Key Functions
+### Key Architecture Features
 
-- `weather()` in `graph.py` - Processes queries and emits UI components
-- `push_ui_message("weather", {city}, message)` - Commands frontend rendering
-- `WeatherComponent` - Renders animated cards with city-specific data
+- **Modular Handlers**: Each component type has its own specialized handler
+- **Component Registry**: Dynamic registration and discovery of handlers
+- **Type Safety**: Full TypeScript support with component prop interfaces
+- **Language Support**: Automatic detection and multi-language responses
+- **Extensible Design**: Easy to add new handlers and UI components
 
 ## How to Customize
 
-### Adding New Cities
+### Adding New Component Handlers
 
-1. **Update city detection** in `src/agent/graph.py`:
+1. **Create Handler Class** in `src/agent/handlers/`:
 ```python
-if "paris" in message_content.lower():
-    city = "Paris"
+from .base import BaseComponentHandler
+
+class MyCustomHandler(BaseComponentHandler):
+    @property
+    def component_type(self) -> str:
+        return "myCustom"
+    
+    async def process_request(self, request: str, language: str = 'en') -> Dict[str, Any]:
+        # Your custom logic here
+        pass
 ```
 
-2. **Add weather data** in `src/agent/ui.tsx`:
+2. **Register Handler** in `src/agent/handlers/registry.py`:
+```python
+from .my_custom import MyCustomHandler
+component_registry.register_handler(MyCustomHandler())
+```
+
+3. **Create React Component** in `src/agent/components/`:
 ```typescript
-const mockWeatherData = {
-  Paris: {
-    temperature: "18°C",
-    condition: "🌧️ Rainy",
-    // ...
-  }
+interface MyCustomProps {
+  // Define your props
 }
+
+const MyCustomComponent: React.FC<MyCustomProps> = (props) => {
+  // Your component implementation
+};
 ```
 
-3. **Add city-specific styling** with gradients and colors
+4. **Register Component** in `src/agent/components/index.ts`:
+```typescript
+import MyCustomComponent from './MyCustomComponent';
 
-### Extending the Graph
+export default {
+  // ... existing components
+  myCustom: MyCustomComponent,
+};
+```
 
-- **Add new nodes**: Extend the graph in `src/agent/graph.py` for more complex workflows
-- **Multiple UI components**: Create additional React components and register them in `langgraph.json`
-- **Real weather API**: Replace mock data with actual weather service integration
+### Customizing Existing Handlers
+
+- **Weather Handler**: Modify city detection, add new weather APIs, customize styling
+- **Todo Handler**: Update task generation prompts, add categories, enhance UI
+- **Video Editing Handler**: Add new task types, customize workflows, enhance progress tracking
+
+### Advanced Customization
+
+- **Multi-step Workflows**: Chain multiple handlers for complex tasks
+- **Custom Language Support**: Add new languages to `src/agent/utils/language.py`
+- **Real-time Features**: Implement WebSocket connections for live updates
+- **User Context**: Add user preferences and personalization
 
 ## Development
 
