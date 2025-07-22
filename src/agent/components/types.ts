@@ -28,3 +28,22 @@ export interface TaskItem {
   text: string;
   completed: boolean;
 }
+
+/**
+ * Video editing task item
+ */
+export interface VideoEditingTask {
+  id: string;
+  title: string;
+  description: string;
+  completed: boolean;
+}
+
+/**
+ * Video editing todo component props
+ */
+export interface VideoEditingTodoProps {
+  title: string;
+  subtractionTasks: VideoEditingTask[];
+  additionTasks: VideoEditingTask[];
+}

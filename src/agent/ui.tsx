@@ -12,10 +12,10 @@
 import components from './components';
 
 // Re-export components from the components directory
-const { WeatherComponent, TodoComponent } = components;
+const { WeatherComponent, TodoComponent, VideoEditingTodoComponent } = components;
 
 // Export individual components for direct import
-export { WeatherComponent, TodoComponent };
+export { WeatherComponent, TodoComponent, VideoEditingTodoComponent };
 
 // Default export for LangGraph component mapping
 export default components;

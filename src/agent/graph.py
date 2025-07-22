@@ -37,6 +37,23 @@ class TodoOutput(TypedDict):
     tasks: list[str]
 
 
+class VideoEditingTask(TypedDict):
+    """Video editing task with details."""
+    
+    id: str
+    title: str
+    description: str
+    completed: bool
+
+
+class VideoEditingOutput(TypedDict):
+    """Video editing output with subtraction and addition tasks."""
+    
+    title: str
+    subtractionTasks: list[VideoEditingTask]
+    additionTasks: list[VideoEditingTask]
+
+
 class AgentState(TypedDict):
     """Agent state with messages and UI components."""
 
@@ -229,6 +246,7 @@ Tasks:
 ...
 
 Make sure each task represents a significant step towards the goal.
+IMPORTANT: You must respond in exactly the same language as the user's request.
 """
 
     try:
@@ -296,6 +314,189 @@ Make sure each task represents a significant step towards the goal.
         }
 
 
+async def get_video_editing_data(request: str) -> dict:
+    """Create video editing task data based on user request and return with UI component.
+    
+    Args:
+        request: The user's request for video editing help
+        
+    Returns:
+        Dictionary with 'result' (text) and 'ui_components' (list of UI data)
+    """
+    # Initialize OpenAI client
+    llm = ChatOpenAI(
+        model=os.environ.get("OPENAI_MODEL_ID", "gpt-3.5-turbo"),
+        temperature=0.7,
+        api_key=os.getenv("OPENAI_API_KEY")
+    )
+
+    # Create prompt for video editing task planning with structured JSON output
+    video_editing_prompt = f"""
+You are a professional video editing assistant. Based on the user's video editing request, create a comprehensive editing plan with two categories of tasks:
+
+1. SUBTRACTION tasks (things to remove, cut, or reduce)
+2. ADDITION tasks (things to add, enhance, or create)
+
+User request: {request}
+
+You MUST respond with a valid JSON object in the following exact format:
+{{
+  "title": "A clear, concise title for this video editing project (max 8 words)",
+  "subtractionTasks": [
+    "Remove task 1",
+    "Cut task 2",
+    "Delete task 3"
+  ],
+  "additionTasks": [
+    "Add task 1",
+    "Create task 2",
+    "Enhance task 3"
+  ]
+}}
+
+Requirements:
+- Provide 2-4 subtraction tasks (removing unwanted elements)
+- Provide 2-4 addition tasks (adding new elements or enhancements)
+- Make each task specific and actionable for video editing
+- Use the same language as the user's request for all text content
+- Return ONLY the JSON object, no additional text or formatting
+"""
+
+    try:
+        # Call OpenAI API
+        response = await llm.ainvoke([HumanMessage(content=video_editing_prompt)])
+        ai_response = response.content
+
+        # Parse JSON response with robust error handling
+        title = "Video Editing Project"
+        subtraction_tasks = []
+        addition_tasks = []
+
+        if isinstance(ai_response, str):
+            try:
+                # Clean the response to extract JSON
+                cleaned_response = ai_response.strip()
+                
+                # Remove any markdown code block formatting if present
+                if cleaned_response.startswith('```json'):
+                    cleaned_response = cleaned_response[7:]
+                if cleaned_response.startswith('```'):
+                    cleaned_response = cleaned_response[3:]
+                if cleaned_response.endswith('```'):
+                    cleaned_response = cleaned_response[:-3]
+                
+                cleaned_response = cleaned_response.strip()
+                
+                # Parse JSON
+                parsed_data = json.loads(cleaned_response)
+                
+                # Extract data from parsed JSON
+                if isinstance(parsed_data, dict):
+                    title = parsed_data.get('title', 'Video Editing Project')
+                    subtraction_tasks = parsed_data.get('subtractionTasks', [])
+                    addition_tasks = parsed_data.get('additionTasks', [])
+                    
+                    # Ensure tasks are strings
+                    subtraction_tasks = [str(task) for task in subtraction_tasks if task]
+                    addition_tasks = [str(task) for task in addition_tasks if task]
+                    
+            except (json.JSONDecodeError, KeyError, TypeError) as parse_error:
+                print(f"JSON parsing failed: {parse_error}")
+                # Fallback to basic text parsing for backward compatibility
+                lines = ai_response.split("\n")
+                current_section = None
+                
+                for line in lines:
+                    line = line.strip()
+                    if "title" in line.lower() and ":" in line:
+                        title_part = line.split(":", 1)[1].strip().strip('"').strip("'")
+                        if title_part:
+                            title = title_part
+                    elif "subtraction" in line.lower() and ("task" in line.lower() or "[" in line):
+                        current_section = "subtraction"
+                    elif "addition" in line.lower() and ("task" in line.lower() or "[" in line):
+                        current_section = "addition"
+                    elif line.startswith("-") or line.startswith("*") or (line.startswith('"') and line.endswith('"')):
+                        task_text = line.lstrip("-*").strip().strip('"').strip("'").rstrip(",")
+                        if task_text and current_section == "subtraction":
+                            subtraction_tasks.append(task_text)
+                        elif task_text and current_section == "addition":
+                            addition_tasks.append(task_text)
+
+        # Fallback if no tasks found
+        if not subtraction_tasks:
+            subtraction_tasks = ["Remove unwanted footage", "Cut unnecessary scenes", "Delete background noise"]
+        if not addition_tasks:
+            addition_tasks = ["Add transitions", "Insert background music", "Create title sequence"]
+
+        # Create task objects with IDs
+        subtraction_task_objects = [
+            {
+                "id": f"sub_{i+1}",
+                "title": task,
+                "description": f"Remove or reduce: {task.lower()}",
+                "completed": False
+            }
+            for i, task in enumerate(subtraction_tasks)
+        ]
+        
+        addition_task_objects = [
+            {
+                "id": f"add_{i+1}",
+                "title": task,
+                "description": f"Add or enhance: {task.lower()}",
+                "completed": False
+            }
+            for i, task in enumerate(addition_tasks)
+        ]
+
+        video_editing_data = {
+            "title": title,
+            "subtractionTasks": subtraction_task_objects,
+            "additionTasks": addition_task_objects
+        }
+        
+        # Create UI component data
+        ui_component = {
+            "type": "videoEditingTodo",
+            "data": video_editing_data
+        }
+        
+        total_tasks = len(subtraction_task_objects) + len(addition_task_objects)
+        return {
+            "result": f"I've created a video editing plan titled '{title}' with {len(subtraction_task_objects)} removal tasks and {len(addition_task_objects)} addition tasks ({total_tasks} total tasks) to help you complete your video editing project.",
+            "ui_components": [ui_component]
+        }
+
+    except Exception as e:
+        # Fallback response if API call fails
+        fallback_subtraction = [
+            {"id": "sub_1", "title": "Remove unwanted footage", "description": "Cut out unnecessary or poor quality clips", "completed": False},
+            {"id": "sub_2", "title": "Delete background noise", "description": "Clean up audio by removing unwanted sounds", "completed": False}
+        ]
+        
+        fallback_addition = [
+            {"id": "add_1", "title": "Add transitions", "description": "Insert smooth transitions between clips", "completed": False},
+            {"id": "add_2", "title": "Insert background music", "description": "Add appropriate music to enhance the video", "completed": False}
+        ]
+        
+        fallback_data = {
+            "title": "Video Editing Project",
+            "subtractionTasks": fallback_subtraction,
+            "additionTasks": fallback_addition
+        }
+        
+        ui_component = {
+            "type": "videoEditingTodo",
+            "data": fallback_data
+        }
+        
+        return {
+            "result": f"I've created a video editing plan with 2 removal tasks and 2 addition tasks to help you get started with your project.",
+            "ui_components": [ui_component]
+        }
+
+
 # Note: weather_node and todo_node functions have been removed as their functionality
 # is now integrated into the call_model function with tool calling support
 
@@ -339,6 +540,23 @@ async def call_model(state: AgentState) -> dict[str, list[BaseMessage]]:
                     "required": ["request"]
                 }
             }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "get_video_editing_data",
+                "description": "Create a video editing task plan when users ask for help with video editing, video production, or multimedia content creation. Use this for requests about editing videos, creating video content, post-production work, or video enhancement. This tool will display a specialized video editing UI component with subtraction (removal) and addition (enhancement) tasks organized in a Git diff-style layout.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "request": {
+                            "type": "string",
+                            "description": "The user's video editing request that needs to be broken down into removal and addition tasks"
+                        }
+                    },
+                    "required": ["request"]
+                }
+            }
         }
     ]
     
@@ -351,7 +569,7 @@ async def call_model(state: AgentState) -> dict[str, list[BaseMessage]]:
     
     # Add system message for tool usage guidance
     system_message = SystemMessage(
-        content="""You are a helpful AI assistant with access to weather and task planning tools. 
+        content="""You are a helpful AI assistant with access to weather, task planning, and video editing tools. 
         
 Use the available tools when users ask for:
 - Weather information (use get_weather_data): When users ask about weather, temperature, conditions in any city
@@ -362,6 +580,13 @@ Use the available tools when users ask for:
   * Breaking down complex goals into steps
   * Creating action plans or to-do lists
   * Getting guidance on how to approach something
+- Video editing and production (use get_video_editing_data): When users need help with:
+  * Video editing projects and post-production work
+  * Creating or enhancing video content
+  * Video production planning and workflow
+  * Multimedia content creation
+  * Film editing and video enhancement
+  * YouTube video creation or social media video editing
 
 Examples of when to use get_todo_data:
 - "Help me prepare for a job interview"
@@ -370,7 +595,16 @@ Examples of when to use get_todo_data:
 - "I need to start a business, where do I begin?"
 - "Help me plan my weekend"
 
-You can call multiple tools in a single response if needed. For general conversation that doesn't require planning or weather, respond directly."""
+Examples of when to use get_video_editing_data:
+- "Help me edit my vacation video"
+- "I need to create a promotional video for my business"
+- "How should I edit this interview footage?"
+- "I want to make a YouTube video, what editing steps do I need?"
+- "Help me improve the quality of my recorded presentation"
+- "I need to edit a wedding video"
+
+You can call multiple tools in a single response if needed. For general conversation that doesn't require planning, weather, or video editing, respond directly.
+IMPORTANT: You must respond in exactly the same language as the user's request."""
     )
     
     # Prepare messages for the model
@@ -396,6 +630,8 @@ You can call multiple tools in a single response if needed. For general conversa
                         tool_result = await get_weather_data(tool_args["city"])
                     elif tool_name == "get_todo_data":
                         tool_result = await get_todo_data(tool_args["request"])
+                    elif tool_name == "get_video_editing_data":
+                        tool_result = await get_video_editing_data(tool_args["request"])
                     else:
                         tool_result = {"result": f"Unknown tool: {tool_name}", "ui_components": []}
                     

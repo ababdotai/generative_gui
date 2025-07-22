@@ -6,9 +6,10 @@
 
 import WeatherComponent from './WeatherComponent';
 import TodoComponent from './TodoComponent';
+import VideoEditingTodoComponent from './VideoEditingTodoComponent';
 
 // Export individual components
-export { WeatherComponent, TodoComponent };
+export { WeatherComponent, TodoComponent, VideoEditingTodoComponent };
 
 // Export types
 export * from './types';
@@ -17,6 +18,8 @@ export * from './types';
 export default {
   weather: WeatherComponent,
   todo: TodoComponent,
+  videoEditingTodo: VideoEditingTodoComponent,
   WeatherComponent,
   TodoComponent,
+  VideoEditingTodoComponent,
 };
