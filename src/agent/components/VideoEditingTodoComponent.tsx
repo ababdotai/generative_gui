@@ -102,7 +102,16 @@ const VideoEditingTodoComponent: React.FC<VideoEditingTodoProps> = ({
                     </div>
                   </div>
                   <div className="task-content">
-                    <div className="task-title">{task.title}</div>
+                    <div className="task-title-row">
+                      <div className="task-title">{task.title}</div>
+                      {task.tags && task.tags.length > 0 && (
+                        <div className="task-tags">
+                          {task.tags.map((tag, tagIndex) => (
+                            <span key={tagIndex} className={`task-tag tag-color-${(tagIndex % 8) + 1}`}>{tag}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <div className="task-description">{task.details || task.description}</div>
                   </div>
                 </div>
@@ -135,7 +144,16 @@ const VideoEditingTodoComponent: React.FC<VideoEditingTodoProps> = ({
                     </div>
                   </div>
                   <div className="task-content">
-                    <div className="task-title">{task.title}</div>
+                    <div className="task-title-row">
+                      <div className="task-title">{task.title}</div>
+                      {task.tags && task.tags.length > 0 && (
+                        <div className="task-tags">
+                          {task.tags.map((tag, tagIndex) => (
+                            <span key={tagIndex} className={`task-tag tag-color-${(tagIndex % 8) + 1}`}>{tag}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <div className="task-description">{task.details || task.description}</div>
                   </div>
                 </div>
@@ -412,11 +430,81 @@ const VideoEditingTodoComponent: React.FC<VideoEditingTodoProps> = ({
           flex: 1;
         }
 
+        .task-title-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 4px;
+          flex-wrap: wrap;
+        }
+
         .task-title {
           font-size: 14px;
           font-weight: 500;
-          margin-bottom: 4px;
           line-height: 1.3;
+        }
+
+        .task-tags {
+          display: flex;
+          gap: 4px;
+          flex-wrap: wrap;
+        }
+
+        .task-tag {
+          padding: 2px 8px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 500;
+          white-space: nowrap;
+          transition: all 0.2s ease;
+          border: 1px solid transparent;
+        }
+
+        /* Colorful tag styles inspired by GitHub issues */
+        .task-tag.tag-color-1 {
+          background-color: #0969da;
+          color: white;
+        }
+
+        .task-tag.tag-color-2 {
+          background-color: #8250df;
+          color: white;
+        }
+
+        .task-tag.tag-color-3 {
+          background-color: #1f883d;
+          color: white;
+        }
+
+        .task-tag.tag-color-4 {
+          background-color: #cf222e;
+          color: white;
+        }
+
+        .task-tag.tag-color-5 {
+          background-color: #fb8500;
+          color: white;
+        }
+
+        .task-tag.tag-color-6 {
+          background-color: #0550ae;
+          color: white;
+        }
+
+        .task-tag.tag-color-7 {
+          background-color: #6f42c1;
+          color: white;
+        }
+
+        .task-tag.tag-color-8 {
+          background-color: #d1242f;
+          color: white;
+        }
+
+        .task-tag:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          opacity: 0.9;
         }
 
         .task-description {

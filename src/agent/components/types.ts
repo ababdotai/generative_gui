@@ -37,6 +37,7 @@ export interface VideoEditingTask {
   title: string;
   description: string;
   details?: string; // Optional detailed information for the task
+  tags?: string[]; // Optional tags for categorization (1-3 tags)
   completed: boolean;
 }
 
