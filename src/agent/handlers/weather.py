@@ -49,7 +49,7 @@ class WeatherHandler(BaseComponentHandler):
             
             # Fetch real weather data
             weather_response = await self._fetch_weather_data(city)
-            weather_data = self._format_weather_data(weather_response, city)
+            weather_data = self._format_weather_data(weather_response, city, language)
             
             # Create UI component
             ui_component = create_ui_component(self.component_type, weather_data)
@@ -100,13 +100,13 @@ City:"""
         
         url = f"http://api.weatherapi.com/v1/current.json?key={api_key}&q={city}"
         
-        # Create client without proxy to avoid SOCKS proxy issues
-        async with httpx.AsyncClient(proxies={}) as client:
+        # Create HTTP client
+        async with httpx.AsyncClient() as client:
             response = await client.get(url)
             response.raise_for_status()
             return response.json()
     
-    def _format_weather_data(self, weather_response: dict, city: str) -> WeatherOutput:
+    def _format_weather_data(self, weather_response: dict, city: str, language: str = 'en') -> WeatherOutput:
         """Format weather API response into WeatherOutput format."""
         current = weather_response.get("current", {})
         condition = current.get("condition", {})
@@ -123,28 +123,57 @@ City:"""
         wind_mph = current.get("wind_mph", 5)
         wind_speed = f"{wind_mph} mph"
         
+        # Weather condition descriptions in multiple languages
+        weather_descriptions = {
+            'rain': {
+                'en': 'Rainy weather today',
+                'zh': '今日有雨',
+                'ja': '今日は雨です'
+            },
+            'cloud': {
+                'en': 'Partly cloudy skies',
+                'zh': '部分多云',
+                'ja': '部分的に曇り'
+            },
+            'clear': {
+                'en': 'Clear and sunny',
+                'zh': '晴朗天气',
+                'ja': '晴れて快晴'
+            },
+            'snow': {
+                'en': 'Snowy conditions',
+                'zh': '下雪天气',
+                'ja': '雪の天気'
+            },
+            'default': {
+                'en': 'Pleasant weather',
+                'zh': '宜人天气',
+                'ja': '快適な天気'
+            }
+        }
+        
         # Map weather conditions to icons and gradients
         condition_lower = condition_text.lower()
         if "rain" in condition_lower or "drizzle" in condition_lower:
             icon = "🌧️"
             gradient = "linear-gradient(135deg, #636e72 0%, #2d3436 100%)"
-            description = "Rainy weather today"
+            description = weather_descriptions['rain'].get(language, weather_descriptions['rain']['en'])
         elif "cloud" in condition_lower:
             icon = "⛅"
             gradient = "linear-gradient(135deg, #74b9ff 0%, #0984e3 100%)"
-            description = "Partly cloudy skies"
+            description = weather_descriptions['cloud'].get(language, weather_descriptions['cloud']['en'])
         elif "sun" in condition_lower or "clear" in condition_lower:
             icon = "☀️"
             gradient = "linear-gradient(135deg, #fdcb6e 0%, #e17055 100%)"
-            description = "Clear and sunny"
+            description = weather_descriptions['clear'].get(language, weather_descriptions['clear']['en'])
         elif "snow" in condition_lower:
             icon = "❄️"
             gradient = "linear-gradient(135deg, #ddd6fe 0%, #a78bfa 100%)"
-            description = "Snowy conditions"
+            description = weather_descriptions['snow'].get(language, weather_descriptions['snow']['en'])
         else:
             icon = "🌤️"
             gradient = "linear-gradient(135deg, #fd79a8 0%, #fdcb6e 100%)"
-            description = "Pleasant weather"
+            description = weather_descriptions['default'].get(language, weather_descriptions['default']['en'])
         
         return WeatherOutput(
             city=city,
@@ -164,6 +193,13 @@ City:"""
         except Exception:
             city = "San Francisco"
         
+        # Fallback descriptions in multiple languages
+        fallback_descriptions = {
+            'en': 'Weather data unavailable, showing sample data',
+            'zh': '天气数据不可用，显示示例数据',
+            'ja': '天気データが利用できません、サンプルデータを表示'
+        }
+        
         # Create fallback weather data
         fallback_weather: WeatherOutput = {
             "city": city,
@@ -173,7 +209,7 @@ City:"""
             "windSpeed": "8 mph",
             "icon": "⛅",
             "gradient": "linear-gradient(135deg, #74b9ff 0%, #0984e3 100%)",
-            "description": "Weather data unavailable, showing sample data"
+            "description": fallback_descriptions.get(language, fallback_descriptions['en'])
         }
         
         ui_component = create_ui_component(self.component_type, fallback_weather)

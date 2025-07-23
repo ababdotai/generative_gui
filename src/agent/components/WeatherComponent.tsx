@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { WeatherComponentProps } from './types';
+import { getAutoTranslations } from './i18n';
 
 /**
  * WeatherComponent now receives real weather data from the backend
@@ -13,6 +14,9 @@ import { WeatherComponentProps } from './types';
  */
 const WeatherComponent: React.FC<WeatherComponentProps> = (props) => {
   const [isVisible, setIsVisible] = useState(false);
+  
+  // Auto-detect language from city name and get translations
+  const t = getAutoTranslations(props.city);
 
   useEffect(() => {
     // Trigger animation on mount
@@ -47,7 +51,7 @@ const WeatherComponent: React.FC<WeatherComponentProps> = (props) => {
           <div className="detail-item">
             <div className="detail-icon">💧</div>
             <div className="detail-info">
-              <span className="detail-label">Humidity</span>
+              <span className="detail-label">{t.humidity}</span>
               <span className="detail-value">{props.humidity}</span>
             </div>
           </div>
@@ -55,7 +59,7 @@ const WeatherComponent: React.FC<WeatherComponentProps> = (props) => {
           <div className="detail-item">
             <div className="detail-icon">💨</div>
             <div className="detail-info">
-              <span className="detail-label">Wind</span>
+              <span className="detail-label">{t.wind}</span>
               <span className="detail-value">{props.windSpeed}</span>
             </div>
           </div>

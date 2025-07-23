@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TodoComponentProps } from './types';
+import { getAutoTranslations } from './i18n';
 
 /**
  * Todo component that displays a list of tasks with interactive checkboxes
@@ -9,6 +10,9 @@ import { TodoComponentProps } from './types';
 const TodoComponent: React.FC<TodoComponentProps> = ({ title, tasks }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [checkedTasks, setCheckedTasks] = useState<boolean[]>([]);
+  
+  // Auto-detect language from title and get translations
+  const t = getAutoTranslations(title);
 
   useEffect(() => {
     // Trigger animation on mount
@@ -37,7 +41,7 @@ const TodoComponent: React.FC<TodoComponentProps> = ({ title, tasks }) => {
         <div className="todo-header">
           <h2 className="todo-title">{title}</h2>
           <div className="todo-stats">
-            <span className="progress-text">{completedCount}/{tasks.length} completed</span>
+            <span className="progress-text">{completedCount}/{tasks.length} {t.completed}</span>
           </div>
         </div>
 
@@ -73,9 +77,9 @@ const TodoComponent: React.FC<TodoComponentProps> = ({ title, tasks }) => {
         <div className="todo-footer">
           <div className="completion-badge">
             {progressPercentage === 100 ? (
-              <span className="badge-complete">🎉 All Done!</span>
+              <span className="badge-complete">{t.allDone}</span>
             ) : (
-              <span className="badge-progress">📝 In Progress</span>
+              <span className="badge-progress">{t.inProgress}</span>
             )}
           </div>
         </div>

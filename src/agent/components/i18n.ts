@@ -1,5 +1,5 @@
 /**
- * Internationalization utilities for video editing components
+ * Internationalization utilities for all UI components
  * Supports Chinese, English, and Japanese languages
  */
 
@@ -26,35 +26,62 @@ export const detectLanguage = (text: string): SupportedLanguage => {
 };
 
 /**
- * Translation strings for video editing component
+ * Translation strings for all components
  */
 export const translations = {
   zh: {
+    // Video editing component
     subtractionTasks: '素材选择计划',
     additionTasks: '效果添加计划',
     subtractionDescription: '环境分析、关键信息提取、冗余移除、素材预处理',
     additionDescription: '添加文字、音频、视觉效果、交互元素和最终合成',
     completed: '已完成',
     videoReady: '🎬 视频制作完成！',
-    editingInProgress: '🎞️ 剪辑进行中'
+    editingInProgress: '🎞️ 剪辑进行中',
+    
+    // Todo component
+    allDone: '🎉 全部完成！',
+    inProgress: '📝 进行中',
+    
+    // Weather component
+    humidity: '湿度',
+    wind: '风速'
   },
   en: {
+    // Video editing component
     subtractionTasks: 'Subtraction Tasks',
     additionTasks: 'Addition Tasks',
     subtractionDescription: 'Environment analysis, key information extraction, redundancy removal, material preprocessing',
     additionDescription: 'Adding text, audio, visuals, interactions, and final composition',
     completed: 'completed',
     videoReady: '🎬 Video Ready!',
-    editingInProgress: '🎞️ Editing in Progress'
+    editingInProgress: '🎞️ Editing in Progress',
+    
+    // Todo component
+    allDone: '🎉 All Done!',
+    inProgress: '📝 In Progress',
+    
+    // Weather component
+    humidity: 'Humidity',
+    wind: 'Wind'
   },
   ja: {
+    // Video editing component
     subtractionTasks: '削減タスク',
     additionTasks: '追加タスク',
     subtractionDescription: '環境分析、重要情報抽出、冗長性除去、素材前処理',
     additionDescription: 'テキスト、音声、視覚効果、インタラクション要素、最終合成の追加',
     completed: '完了',
     videoReady: '🎬 動画完成！',
-    editingInProgress: '🎞️ 編集中'
+    editingInProgress: '🎞️ 編集中',
+    
+    // Todo component
+    allDone: '🎉 完了！',
+    inProgress: '📝 進行中',
+    
+    // Weather component
+    humidity: '湿度',
+    wind: '風速'
   }
 };
 
