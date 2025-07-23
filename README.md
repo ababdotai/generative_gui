@@ -6,9 +6,12 @@
 A sophisticated multi-agent system built with [LangGraph](https://github.com/langchain-ai/langgraph) that demonstrates advanced **Generative UI** capabilities. The system intelligently routes between multiple specialized handlers including weather queries, task planning, and video editing workflows, responding with both conversational text and rich, interactive UI components.
 
 <div align="center">
-  <img src="./static/multi_ui.png" alt="multi_ui_in_one" width="75%" />
+  <img src="./static/multi_ui.png" alt="multi_ui_in_one" width="60%" />
 </div>
 
+<div align="center">
+  <img src="./static/video_todo.png" alt="video_todo" width="75%" />
+</div>
 
 ## Features
 
