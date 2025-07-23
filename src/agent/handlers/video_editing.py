@@ -96,20 +96,31 @@ You MUST respond with a valid JSON object in the following exact format:
 {{
   "title": "A clear, concise title for this video editing project (max 8 words)",
   "subtractionTasks": [
-    "Remove task 1",
-    "Cut task 2",
-    "Delete task 3"
+    {{
+      "title": "Task title",
+      "details": "Detailed description of what to do and why"
+    }},
+    {{
+      "title": "Another task",
+      "details": "Another detailed description"
+    }}
   ],
   "additionTasks": [
-    "Add task 1",
-    "Create task 2",
-    "Enhance task 3"
+    {{
+      "title": "Task title",
+      "details": "Detailed description of what to add and how"
+    }},
+    {{
+      "title": "Another task",
+      "details": "Another detailed description"
+    }}
   ]
 }}
 
 Requirements:
 - Provide 2-4 subtraction tasks (removing unwanted elements)
 - Provide 2-4 addition tasks (adding new elements or enhancements)
+- Each task must have a concise title and detailed description
 - Make each task specific and actionable for video editing
 - Use the same language as the user's request for all text content
 - Return ONLY the JSON object, no additional text or formatting
@@ -145,12 +156,38 @@ Requirements:
                 # Extract data from parsed JSON
                 if isinstance(parsed_data, dict):
                     title = parsed_data.get('title', 'Video Editing Project')
-                    subtraction_tasks = parsed_data.get('subtractionTasks', [])
-                    addition_tasks = parsed_data.get('additionTasks', [])
+                    subtraction_tasks_raw = parsed_data.get('subtractionTasks', [])
+                    addition_tasks_raw = parsed_data.get('additionTasks', [])
                     
-                    # Ensure tasks are strings
-                    subtraction_tasks = [str(task) for task in subtraction_tasks if task]
-                    addition_tasks = [str(task) for task in addition_tasks if task]
+                    # Process task objects
+                    subtraction_tasks = []
+                    addition_tasks = []
+                    
+                    for task in subtraction_tasks_raw:
+                        if isinstance(task, dict):
+                            subtraction_tasks.append({
+                                'title': task.get('title', ''),
+                                'details': task.get('details', '')
+                            })
+                        elif isinstance(task, str):
+                            # Backward compatibility for string tasks
+                            subtraction_tasks.append({
+                                'title': task,
+                                'details': f"Remove or reduce: {task.lower()}"
+                            })
+                    
+                    for task in addition_tasks_raw:
+                        if isinstance(task, dict):
+                            addition_tasks.append({
+                                'title': task.get('title', ''),
+                                'details': task.get('details', '')
+                            })
+                        elif isinstance(task, str):
+                            # Backward compatibility for string tasks
+                            addition_tasks.append({
+                                'title': task,
+                                'details': f"Add or enhance: {task.lower()}"
+                            })
                     
             except (json.JSONDecodeError, KeyError, TypeError) as parse_error:
                 print(f"JSON parsing failed: {parse_error}")
@@ -171,22 +208,36 @@ Requirements:
                     elif line.startswith("-") or line.startswith("*") or (line.startswith('"') and line.endswith('"')):
                         task_text = line.lstrip("-*").strip().strip('"').strip("'").rstrip(",")
                         if task_text and current_section == "subtraction":
-                            subtraction_tasks.append(task_text)
+                            subtraction_tasks.append({
+                                'title': task_text,
+                                'details': f"Remove or reduce: {task_text.lower()}"
+                            })
                         elif task_text and current_section == "addition":
-                            addition_tasks.append(task_text)
+                            addition_tasks.append({
+                                'title': task_text,
+                                'details': f"Add or enhance: {task_text.lower()}"
+                            })
 
         # Fallback if no tasks found
         if not subtraction_tasks:
-            subtraction_tasks = ["Remove unwanted footage", "Cut unnecessary scenes", "Delete background noise"]
+            subtraction_tasks = [
+                {'title': "Remove unwanted footage", 'details': "Cut out unnecessary or poor quality clips"},
+                {'title': "Cut unnecessary scenes", 'details': "Remove redundant or overly long segments"},
+                {'title': "Delete background noise", 'details': "Clean up audio by removing unwanted sounds"}
+            ]
         if not addition_tasks:
-            addition_tasks = ["Add transitions", "Insert background music", "Create title sequence"]
+            addition_tasks = [
+                {'title': "Add transitions", 'details': "Insert smooth transitions between scenes for better flow"},
+                {'title': "Insert background music", 'details': "Add appropriate music to enhance the mood"},
+                {'title': "Create title sequence", 'details': "Add opening and closing title cards"}
+            ]
 
         # Create task objects with IDs
         subtraction_task_objects = [
             VideoEditingTask(
                 id=f"sub_{i+1}",
-                title=task,
-                description=f"Remove or reduce: {task.lower()}",
+                title=task['title'],
+                description=task['details'],
                 completed=False
             )
             for i, task in enumerate(subtraction_tasks)
@@ -195,8 +246,8 @@ Requirements:
         addition_task_objects = [
             VideoEditingTask(
                 id=f"add_{i+1}",
-                title=task,
-                description=f"Add or enhance: {task.lower()}",
+                title=task['title'],
+                description=task['details'],
                 completed=False
             )
             for i, task in enumerate(addition_tasks)

@@ -36,6 +36,7 @@ export interface VideoEditingTask {
   id: string;
   title: string;
   description: string;
+  details?: string; // Optional detailed information for the task
   completed: boolean;
 }
 

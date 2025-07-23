@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { VideoEditingTodoProps } from './types';
+import { getAutoTranslations } from './i18n';
 
 /**
  * Video editing todo component with side-by-side diff-like layout
@@ -15,6 +16,9 @@ const VideoEditingTodoComponent: React.FC<VideoEditingTodoProps> = ({
   const [isVisible, setIsVisible] = useState(false);
   const [subtractionChecked, setSubtractionChecked] = useState<boolean[]>([]);
   const [additionChecked, setAdditionChecked] = useState<boolean[]>([]);
+  
+  // Auto-detect language from title and get translations
+  const t = getAutoTranslations(title);
 
   useEffect(() => {
     // Trigger animation on mount
@@ -57,7 +61,7 @@ const VideoEditingTodoComponent: React.FC<VideoEditingTodoProps> = ({
         <div className="video-editing-header">
           <h2 className="video-editing-title">{title}</h2>
           <div className="video-editing-stats">
-            <span className="progress-text">{totalCompleted}/{totalTasks} completed</span>
+            <span className="progress-text">{totalCompleted}/{totalTasks} {t.completed}</span>
           </div>
         </div>
 
@@ -78,12 +82,12 @@ const VideoEditingTodoComponent: React.FC<VideoEditingTodoProps> = ({
             <div className="section-header">
               <h3 className="section-title">
                 <span className="section-icon">−</span>
-                Subtraction Tasks
+                {t.subtractionTasks}
               </h3>
               <span className="section-progress">{subtractionCompleted}/{subtractionTasks.length}</span>
             </div>
             <div className="section-description">
-              Environment analysis, key information extraction, redundancy removal, material preprocessing
+              {t.subtractionDescription}
             </div>
             <div className="task-list">
               {subtractionTasks.map((task, index) => (
@@ -99,7 +103,7 @@ const VideoEditingTodoComponent: React.FC<VideoEditingTodoProps> = ({
                   </div>
                   <div className="task-content">
                     <div className="task-title">{task.title}</div>
-                    <div className="task-description">{task.description}</div>
+                    <div className="task-description">{task.details || task.description}</div>
                   </div>
                 </div>
               ))}
@@ -111,12 +115,12 @@ const VideoEditingTodoComponent: React.FC<VideoEditingTodoProps> = ({
             <div className="section-header">
               <h3 className="section-title">
                 <span className="section-icon">+</span>
-                Addition Tasks
+                {t.additionTasks}
               </h3>
               <span className="section-progress">{additionCompleted}/{additionTasks.length}</span>
             </div>
             <div className="section-description">
-              Adding text, audio, visuals, interactions, and final composition
+              {t.additionDescription}
             </div>
             <div className="task-list">
               {additionTasks.map((task, index) => (
@@ -132,7 +136,7 @@ const VideoEditingTodoComponent: React.FC<VideoEditingTodoProps> = ({
                   </div>
                   <div className="task-content">
                     <div className="task-title">{task.title}</div>
-                    <div className="task-description">{task.description}</div>
+                    <div className="task-description">{task.details || task.description}</div>
                   </div>
                 </div>
               ))}
@@ -144,9 +148,9 @@ const VideoEditingTodoComponent: React.FC<VideoEditingTodoProps> = ({
         <div className="video-editing-footer">
           <div className="completion-badge">
             {overallProgress === 100 ? (
-              <span className="badge-complete">🎬 Video Ready!</span>
+              <span className="badge-complete">{t.videoReady}</span>
             ) : (
-              <span className="badge-progress">🎞️ Editing in Progress</span>
+              <span className="badge-progress">{t.editingInProgress}</span>
             )}
           </div>
         </div>
@@ -163,11 +167,11 @@ const VideoEditingTodoComponent: React.FC<VideoEditingTodoProps> = ({
         .video-editing-card {
           width: 900px;
           max-width: 95vw;
-          background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
           border-radius: 20px;
           padding: 30px;
-          color: white;
-          box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+          color: #2c3e50;
+          box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1);
           transform: translateY(50px);
           opacity: 0;
           transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -188,7 +192,7 @@ const VideoEditingTodoComponent: React.FC<VideoEditingTodoProps> = ({
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(255, 255, 255, 0.05);
+          background: rgba(255, 255, 255, 0.8);
           border-radius: 20px;
           backdrop-filter: blur(10px);
         }
@@ -220,7 +224,7 @@ const VideoEditingTodoComponent: React.FC<VideoEditingTodoProps> = ({
         .progress-text {
           font-size: 14px;
           opacity: 0.9;
-          background: rgba(255, 255, 255, 0.15);
+          background: rgba(52, 73, 94, 0.1);
           padding: 6px 12px;
           border-radius: 15px;
           font-weight: 500;
@@ -236,7 +240,7 @@ const VideoEditingTodoComponent: React.FC<VideoEditingTodoProps> = ({
         .progress-bar {
           width: 100%;
           height: 10px;
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(52, 73, 94, 0.1);
           border-radius: 5px;
           overflow: hidden;
         }
@@ -265,14 +269,14 @@ const VideoEditingTodoComponent: React.FC<VideoEditingTodoProps> = ({
         }
 
         .subtraction-section {
-          background: rgba(255, 107, 107, 0.1);
-          border: 1px solid rgba(255, 107, 107, 0.2);
+          background: rgba(255, 107, 107, 0.15);
+          border: 2px solid rgba(255, 107, 107, 0.4);
           animation-delay: 0.8s;
         }
 
         .addition-section {
-          background: rgba(78, 205, 196, 0.1);
-          border: 1px solid rgba(78, 205, 196, 0.2);
+          background: rgba(78, 205, 196, 0.15);
+          border: 2px solid rgba(78, 205, 196, 0.4);
           animation-delay: 0.9s;
         }
 
@@ -304,19 +308,19 @@ const VideoEditingTodoComponent: React.FC<VideoEditingTodoProps> = ({
         }
 
         .subtraction-section .section-icon {
-          background: rgba(255, 107, 107, 0.2);
-          color: #ff6b6b;
+          background: rgba(255, 107, 107, 0.3);
+          color: #e74c3c;
         }
 
         .addition-section .section-icon {
-          background: rgba(78, 205, 196, 0.2);
-          color: #4ecdc4;
+          background: rgba(78, 205, 196, 0.3);
+          color: #16a085;
         }
 
         .section-progress {
           font-size: 12px;
           opacity: 0.8;
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(52, 73, 94, 0.1);
           padding: 4px 8px;
           border-radius: 10px;
         }
@@ -351,11 +355,11 @@ const VideoEditingTodoComponent: React.FC<VideoEditingTodoProps> = ({
         .task-item:nth-child(5) { animation-delay: 1.4s; }
 
         .subtraction-task:hover {
-          background: rgba(255, 107, 107, 0.15);
+          background: rgba(255, 107, 107, 0.25);
         }
 
         .addition-task:hover {
-          background: rgba(78, 205, 196, 0.15);
+          background: rgba(78, 205, 196, 0.25);
         }
 
         .task-item.completed .task-content {
@@ -369,7 +373,7 @@ const VideoEditingTodoComponent: React.FC<VideoEditingTodoProps> = ({
         .task-checkbox {
           width: 18px;
           height: 18px;
-          border: 2px solid rgba(255, 255, 255, 0.4);
+          border: 2px solid rgba(52, 73, 94, 0.4);
           border-radius: 50%;
           margin-right: 12px;
           margin-top: 2px;
@@ -432,7 +436,7 @@ const VideoEditingTodoComponent: React.FC<VideoEditingTodoProps> = ({
         .completion-badge {
           padding: 10px 20px;
           border-radius: 25px;
-          background: rgba(255, 255, 255, 0.15);
+          background: rgba(52, 73, 94, 0.1);
           font-size: 16px;
           font-weight: 600;
         }
